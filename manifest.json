@@ -1,0 +1,15 @@
+{
+  "manifest_version": 2,
+  "name": "Hide Dumb YouTube Comments",
+  "version": "1.0",
+  "description": "Hides YouTube comments containing phrases listed in phrases.txt.",
+  "content_scripts": [
+    {
+      "matches": ["*://www.youtube.com/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": ["phrases.txt"],
+  "permissions": []
+}
