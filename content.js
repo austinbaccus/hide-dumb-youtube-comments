@@ -46,22 +46,28 @@
   filterAll();
 
   const observer = new MutationObserver(mutations => {
-    for (const mutation of mutations) {
-      for (const added of mutation.addedNodes) {
-        if (added.nodeType !== Node.ELEMENT_NODE) continue;
+    const toCheck = new Set();
 
-        // The added node itself might be a comment renderer.
-        if (added.matches("ytd-comment-renderer")) {
-          filterComment(added);
-        } else {
-          // Or it may contain comment renderers further down.
-          added
-            .querySelectorAll("ytd-comment-renderer")
-            .forEach(filterComment);
+    for (const mutation of mutations) {
+      if (mutation.type === "childList") {
+        for (const added of mutation.addedNodes) {
+          if (added.nodeType !== Node.ELEMENT_NODE) continue;
+          if (added.matches("ytd-comment-renderer")) {
+            toCheck.add(added);
+          } else {
+            added.querySelectorAll("ytd-comment-renderer").forEach(el => toCheck.add(el));
+          }
         }
+      } else if (mutation.type === "characterData") {
+        // Text was filled into a node — find the enclosing comment renderer.
+        const commentEl = mutation.target.parentElement &&
+          mutation.target.parentElement.closest("ytd-comment-renderer");
+        if (commentEl) toCheck.add(commentEl);
       }
     }
+
+    toCheck.forEach(filterComment);
   });
 
-  observer.observe(document.body, { childList: true, subtree: true });
+  observer.observe(document.body, { childList: true, subtree: true, characterData: true });
 })();
