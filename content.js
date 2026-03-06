@@ -47,21 +47,38 @@
 
   const observer = new MutationObserver(mutations => {
     for (const mutation of mutations) {
-      for (const added of mutation.addedNodes) {
-        if (added.nodeType !== Node.ELEMENT_NODE) continue;
+      // Handle newly added elements.
+      if (mutation.type === "childList") {
+        for (const added of mutation.addedNodes) {
+          if (added.nodeType !== Node.ELEMENT_NODE) continue;
 
-        // The added node itself might be a comment renderer.
-        if (added.matches("ytd-comment-renderer")) {
-          filterComment(added);
-        } else {
-          // Or it may contain comment renderers further down.
-          added
-            .querySelectorAll("ytd-comment-renderer")
-            .forEach(filterComment);
+          // The added node itself might be a comment renderer.
+          if (added.matches("ytd-comment-renderer")) {
+            filterComment(added);
+          } else {
+            // Or it may contain comment renderers further down.
+            added
+              .querySelectorAll("ytd-comment-renderer")
+              .forEach(filterComment);
+          }
+        }
+      }
+
+      // Handle text being populated asynchronously into an existing element.
+      // YouTube often inserts the comment node before filling in its text.
+      if (mutation.type === "characterData") {
+        const renderer = mutation.target.parentElement &&
+          mutation.target.parentElement.closest("ytd-comment-renderer");
+        if (renderer) {
+          filterComment(renderer);
         }
       }
     }
   });
 
-  observer.observe(document.body, { childList: true, subtree: true });
+  observer.observe(document.body, {
+    childList: true,
+    subtree: true,
+    characterData: true,
+  });
 })();
